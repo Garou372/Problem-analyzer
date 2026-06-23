@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Problem Analyzer — Validate before you build</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d0d0f;
+    --surface: #16161a;
+    --border: rgba(255,255,255,0.08);
+    --border-md: rgba(255,255,255,0.14);
+    --text: #f0eff4;
+    --muted: #9997a8;
+    --hint: #55536a;
+    --purple: #8b7ff5;
+    --purple-dim: #534AB7;
+    --purple-glow: rgba(139,127,245,0.15);
+    --purple-bg: rgba(139,127,245,0.1);
+    --green: #5fcf8a;
+    --amber: #f5a623;
+    --red: #f56565;
+  }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; line-height: 1.6; overflow-x: hidden; }
+
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 2rem; border-bottom: 0.5px solid var(--border); position: sticky; top: 0; background: rgba(13,13,15,0.85); backdrop-filter: blur(12px); z-index: 100; }
+  .logo { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
+  .logo span { color: var(--purple); }
+  .nav-cta { padding: 7px 18px; background: var(--purple); color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; text-decoration: none; transition: opacity 0.15s; }
+  .nav-cta:hover { opacity: 0.85; }
+
+  .hero { max-width: 760px; margin: 0 auto; padding: 6rem 1.5rem 4rem; text-align: center; }
+  .eyebrow { display: inline-block; font-size: 12px; font-weight: 500; color: var(--purple); background: var(--purple-bg); border: 0.5px solid rgba(139,127,245,0.3); border-radius: 20px; padding: 4px 14px; margin-bottom: 1.5rem; letter-spacing: 0.5px; text-transform: uppercase; }
+  h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 700; line-height: 1.15; letter-spacing: -1px; margin-bottom: 1.25rem; }
+  h1 em { font-style: normal; color: var(--purple); }
+  .hero-sub { font-size: 18px; color: var(--muted); max-width: 520px; margin: 0 auto 2.5rem; line-height: 1.7; }
+  .cta-group { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+  .btn-primary { padding: 14px 32px; background: var(--purple); color: #fff; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; text-decoration: none; transition: opacity 0.15s, transform 0.1s; display: inline-block; }
+  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-ghost { padding: 14px 28px; background: transparent; color: var(--muted); border: 0.5px solid var(--border-md); border-radius: 10px; font-size: 15px; cursor: pointer; text-decoration: none; transition: all 0.15s; display: inline-block; }
+  .btn-ghost:hover { color: var(--text); border-color: var(--purple); }
+
+  .stats { display: flex; align-items: center; justify-content: center; gap: 2.5rem; margin-top: 3rem; flex-wrap: wrap; }
+  .stat { text-align: center; }
+  .stat .num { font-size: 26px; font-weight: 700; color: var(--text); }
+  .stat .label { font-size: 12px; color: var(--hint); margin-top: 2px; }
+
+  .divider { width: 0.5px; height: 36px; background: var(--border); }
+
+  .section { max-width: 860px; margin: 0 auto; padding: 5rem 1.5rem; }
+  .section-label { font-size: 12px; font-weight: 500; color: var(--purple); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 1rem; }
+  .section h2 { font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 700; letter-spacing: -0.5px; margin-bottom: 1rem; }
+  .section p { color: var(--muted); font-size: 16px; max-width: 560px; line-height: 1.75; }
+
+  .stages { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1px; background: var(--border); border: 0.5px solid var(--border); border-radius: 14px; overflow: hidden; margin-top: 3rem; }
+  .stage-card { background: var(--surface); padding: 1.5rem; transition: background 0.15s; }
+  .stage-card:hover { background: #1c1c22; }
+  .stage-icon { width: 36px; height: 36px; border-radius: 8px; background: var(--purple-bg); border: 0.5px solid rgba(139,127,245,0.2); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--purple); margin-bottom: 12px; }
+  .stage-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .stage-card p { font-size: 13px; color: var(--hint); line-height: 1.6; }
+
+  .why { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 3rem; }
+  .why-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px; padding: 1.25rem 1.5rem; }
+  .why-card .icon { font-size: 20px; margin-bottom: 10px; }
+  .why-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .why-card p { font-size: 13px; color: var(--muted); line-height: 1.65; }
+
+  .cta-section { text-align: center; padding: 5rem 1.5rem; border-top: 0.5px solid var(--border); }
+  .cta-section h2 { font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 700; letter-spacing: -0.5px; margin-bottom: 1rem; }
+  .cta-section p { color: var(--muted); margin-bottom: 2rem; font-size: 16px; }
+
+  footer { text-align: center; padding: 2rem; border-top: 0.5px solid var(--border); font-size: 13px; color: var(--hint); }
+
+  .tag { display: inline-block; font-size: 11px; background: rgba(95,207,138,0.1); color: var(--green); border: 0.5px solid rgba(95,207,138,0.25); border-radius: 20px; padding: 3px 10px; margin-left: 8px; vertical-align: middle; }
+
+  @media (max-width: 600px) {
+    nav { padding: 1rem 1.25rem; }
+    .hero { padding: 4rem 1.25rem 3rem; }
+    .stats { gap: 1.5rem; }
+    .divider { display: none; }
+    .section { padding: 3.5rem 1.25rem; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">Problem<span>Analyzer</span></div>
+  <a href="tool.html" class="nav-cta">Start validating</a>
+</nav>
+
+<section class="hero">
+  <div class="eyebrow">Free · No signup needed</div>
+  <h1>Stop building.<br /><em>Start validating.</em></h1>
+  <p class="hero-sub">A structured 7-stage playbook that tells you whether your startup idea is worth building — before you write a single line of code.</p>
+  <div class="cta-group">
+    <a href="tool.html" class="btn-primary">Open the playbook →</a>
+    <a href="#how" class="btn-ghost">See how it works</a>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="num">7</div><div class="label">Validation stages</div></div>
+    <div class="divider"></div>
+    <div class="stat"><div class="num">AI</div><div class="label">Powered analysis</div></div>
+    <div class="divider"></div>
+    <div class="stat"><div class="num">0</div><div class="label">Data stored</div></div>
+  </div>
+</section>
+
+<section class="section" id="how">
+  <div class="section-label">How it works</div>
+  <h2>7 stages. One verdict.</h2>
+  <p>Each stage filters out bad ideas and strengthens good ones. Fill them in order — then get an AI verdict on whether to build, test more, or reject.</p>
+  <div class="stages">
+    <div class="stage-card"><div class="stage-icon">1</div><h3>Problem filtering</h3><p>Score your idea across 7 dimensions and get a total validation score.</p></div>
+    <div class="stage-card"><div class="stage-icon">2</div><h3>Complaint validation</h3><p>Collect 20 real complaints from Reddit, Quora, G2, and Trustpilot.</p></div>
+    <div class="stage-card"><div class="stage-icon">3</div><h3>Competition analysis</h3><p>Map existing solutions, their pricing, and what users actually hate.</p></div>
+    <div class="stage-card"><div class="stage-icon">4</div><h3>Gap identification</h3><p>Find the exact reason the problem is still unsolved.</p></div>
+    <div class="stage-card"><div class="stage-icon">5</div><h3>Customer discovery</h3><p>Document interview insights from real potential users.</p></div>
+    <div class="stage-card"><div class="stage-icon">6</div><h3>Demand test</h3><p>Track landing page signups before writing any code.</p></div>
+    <div class="stage-card"><div class="stage-icon">7</div><h3>MVP definition</h3><p>Define the one core feature that solves the problem cleanly.</p></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-label">Why use this</div>
+  <h2>Most ideas die after launch.<br />Validation kills them early.</h2>
+  <p>Building without validation wastes months. This tool forces the hard questions upfront — so you only build what people actually want.</p>
+  <div class="why">
+    <div class="why-card">
+      <div class="icon">🔑</div>
+      <h3>API key stays private <span class="tag">secure</span></h3>
+      <p>Your Gemini API key is stored only in browser memory. Never saved to disk, never sent anywhere except Google's API directly.</p>
+    </div>
+    <div class="why-card">
+      <div class="icon">⚡</div>
+      <h3>Instant AI analysis</h3>
+      <p>Fill the stages and hit analyze — Gemini gives you a brutal, direct verdict: build, test more, or reject.</p>
+    </div>
+    <div class="why-card">
+      <div class="icon">📵</div>
+      <h3>No account needed</h3>
+      <p>No signup, no login, no tracking. Just open the tool and start validating your idea immediately.</p>
+    </div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <h2>Your next idea deserves<br />an honest answer.</h2>
+  <p>Open the playbook, fill in what you know, and let AI tell you the truth.</p>
+  <a href="tool.html" class="btn-primary">Start validating now →</a>
+</section>
+
+<footer>
+  Built by <a href="https://github.com/Garou372" style="color: var(--purple); text-decoration: none;">Garou372</a> · No data collected · Free forever
+</footer>
+
+</body>
+</html>
