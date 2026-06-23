@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Startup Problem Validation Playbook</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f9f9f8;
+    --surface: #ffffff;
+    --border: rgba(0,0,0,0.1);
+    --border-md: rgba(0,0,0,0.18);
+    --text: #1a1a1a;
+    --muted: #666;
+    --hint: #999;
+    --purple-bg: #EEEDFE;
+    --purple: #534AB7;
+    --purple-dark: #3C3489;
+    --purple-light: #AFA9EC;
+    --green-bg: #EAF3DE;
+    --green: #3B6D11;
+    --amber-bg: #FAEEDA;
+    --amber: #854F0B;
+    --red-bg: #FCEBEB;
+    --red: #A32D2D;
+    --radius: 10px;
+    --radius-sm: 7px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a1a;
+      --surface: #252525;
+      --border: rgba(255,255,255,0.1);
+      --border-md: rgba(255,255,255,0.18);
+      --text: #f0f0f0;
+      --muted: #aaa;
+      --hint: #666;
+      --purple-bg: #26215C;
+      --purple: #AFA9EC;
+      --purple-dark: #CECBF6;
+      --purple-light: #534AB7;
+      --green-bg: #173404;
+      --green: #C0DD97;
+      --amber-bg: #412402;
+      --amber: #FAC775;
+      --red-bg: #501313;
+      --red: #F7C1C1;
+    }
+  }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 15px; line-height: 1.6; }
+  .container { max-width: 720px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+  h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { font-size: 14px; color: var(--muted); margin-bottom: 2rem; }
+  .api-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1.5rem; }
+  .api-card p { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+  .api-row { display: flex; gap: 8px; }
+  .api-row input { flex: 1; padding: 8px 12px; border: 0.5px solid var(--border-md); border-radius: var(--radius-sm); background: var(--bg); color: var(--text); font-size: 14px; outline: none; }
+  .api-row input:focus { border-color: var(--purple); }
+  .api-row button { padding: 8px 16px; background: var(--purple); color: #fff; border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; font-weight: 500; white-space: nowrap; }
+  .api-row button:hover { background: var(--purple-dark); }
+  #key-status { font-size: 12px; color: var(--green); margin-top: 6px; }
+  .stage { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1rem; }
+  .stage-header { display: flex; align-items: center; gap: 10px; margin-bottom: 1rem; }
+  .stage-num { width: 28px; height: 28px; border-radius: 50%; background: var(--purple-bg); color: var(--purple-dark); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .stage-title { font-size: 16px; font-weight: 600; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 5px; }
+  .field input[type=text], .field input[type=number], .field textarea {
+    width: 100%; padding: 9px 12px; border: 0.5px solid var(--border-md); border-radius: var(--radius-sm);
+    background: var(--bg); color: var(--text); font-size: 14px; font-family: inherit; outline: none; resize: vertical;
+  }
+  .field input:focus, .field textarea:focus { border-color: var(--purple); }
+  .field textarea { min-height: 75px; }
+  .scores-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin-bottom: 10px; }
+  .score-field { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; }
+  .score-field label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 7px; }
+  .score-row { display: flex; align-items: center; gap: 10px; }
+  .score-row input[type=range] { flex: 1; accent-color: var(--purple); }
+  .score-val { font-size: 15px; font-weight: 600; color: var(--purple); min-width: 20px; text-align: right; }
+  .total-box { background: var(--purple-bg); border-radius: var(--radius-sm); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+  .total-box span { font-size: 13px; color: var(--purple); font-weight: 500; }
+  .total-box .big { font-size: 22px; font-weight: 700; color: var(--purple-dark); }
+  .dec-row { display: flex; gap: 8px; margin-top: 10px; }
+  .dec-btn { flex: 1; padding: 9px; border-radius: var(--radius-sm); border: 0.5px solid var(--border-md); background: var(--bg); font-size: 13px; cursor: pointer; color: var(--muted); transition: all 0.15s; font-weight: 500; }
+  .dec-btn:hover { border-color: var(--purple-light); }
+  .dec-btn.active-keep { background: var(--green-bg); color: var(--green); border-color: var(--green); }
+  .dec-btn.active-maybe { background: var(--amber-bg); color: var(--amber); border-color: var(--amber); }
+  .dec-btn.active-reject { background: var(--red-bg); color: var(--red); border-color: var(--red); }
+  .complaints-list { display: flex; flex-direction: column; gap: 7px; }
+  .complaint-item { display: flex; gap: 8px; align-items: center; }
+  .complaint-num { font-size: 12px; color: var(--hint); min-width: 26px; }
+  .complaint-item input { flex: 1; padding: 8px 12px; border: 0.5px solid var(--border-md); border-radius: var(--radius-sm); background: var(--bg); color: var(--text); font-size: 14px; outline: none; }
+  .complaint-item input:focus { border-color: var(--purple); }
+  .add-btn { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; color: var(--purple); background: none; border: 0.5px dashed var(--purple-light); border-radius: var(--radius-sm); padding: 8px; cursor: pointer; margin-top: 8px; width: 100%; }
+  .add-btn:hover { background: var(--purple-bg); }
+  .competitor-block { background: var(--bg); border-radius: var(--radius-sm); border: 0.5px solid var(--border); padding: 12px; margin-bottom: 10px; }
+  .competitor-block .ctitle { font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .gap-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 12px; }
+  .gap-label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); background: var(--bg); padding: 9px 12px; border-radius: var(--radius-sm); cursor: pointer; border: 0.5px solid var(--border); transition: all 0.15s; }
+  .gap-label:has(input:checked) { background: var(--purple-bg); color: var(--purple-dark); border-color: var(--purple-light); }
+  .gap-label input { accent-color: var(--purple); }
+  .gen-btn { width: 100%; padding: 13px; background: var(--purple); color: #fff; border: none; border-radius: var(--radius); font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 9px; margin: 1.5rem 0 1rem; transition: background 0.15s; }
+  .gen-btn:hover { background: var(--purple-dark); }
+  .gen-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+  .ai-output { background: var(--surface); border: 1px solid var(--purple-light); border-radius: var(--radius); padding: 1.25rem; }
+  .ai-output h3 { font-size: 15px; font-weight: 600; color: var(--purple-dark); margin-bottom: 12px; }
+  .ai-output .content { font-size: 14px; line-height: 1.8; color: var(--text); }
+  .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.35); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .note { font-size: 12px; color: var(--hint); margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Startup Problem Validation Playbook</h1>
+  <p class="subtitle">Validate before you build. Fill all 7 stages, then let AI analyze.</p>
+
+  <div class="api-card">
+    <p>Gemini API key — stored only in memory, never saved to disk or sent anywhere except Google's API</p>
+    <div class="api-row">
+      <input type="password" id="apiKey" placeholder="AIza..." autocomplete="off" />
+      <button onclick="saveKey()">Save key</button>
+    </div>
+    <p id="key-status"></p>
+    <p class="note">Key is wiped when you close or refresh this tab.</p>
+  </div>
+
+  <div class="stage">
+    <div class="stage-header"><div class="stage-num">1</div><div class="stage-title">Problem filtering</div></div>
+    <div class="field"><label>Problem</label><textarea id="s1-problem" placeholder="Describe the problem clearly..."></textarea></div>
+    <div class="field"><label>Target user</label><input type="text" id="s1-user" placeholder="Who faces this problem?" /></div>
+    <div class="scores-grid">
+      <div class="score-field"><label>Pain score</label><div class="score-row"><input type="range" min="1" max="10" value="5" step="1" oninput="upd(this,'pain-val')" /><span class="score-val" id="pain-val">5</span></div></div>
+      <div class="score-field"><label>Frequency</label><div class="score-row"><input type="range" min="1" max="10" value="5" step="1" oninput="upd(this,'freq-val')" /><span class="score-val" id="freq-val">5</span></div></div>
+      <div class="score-field"><label>Will users pay?</label><div class="score-row"><input type="range" min="1" max="10" value="5" step="1" oninput="upd(this,'pay-val')" /><span class="score-val" id="pay-val">5</span></div></div>
+      <div class="score-field"><label>Solutions weak?</label><div class="score-row"><input type="range" min="1" max="10" value="5" step="1" oninput="upd(this,'weak-val')" /><span class="score-val" id="weak-val">5</span></div></div>
+      <div class="score-field"><label>Software fit</label><div class="score-row"><input type="range" min="1" max="10" value="5" step="1" oninput="upd(this,'soft-val')" /><span class="score-val" id="soft-val">5</span></div></div>
+      <div class="score-field"><label>Solo feasible?</label><div class="score-row"><input type="range" min="1" max="10" value="5" step="1" oninput="upd(this,'solo-val')" /><span class="score-val" id="solo-val">5</span></div></div>
+      <div class="score-field"><label>Market size</label><div class="score-row"><input type="range" min="1" max="10" value="5" step="1" oninput="upd(this,'mkt-val')" /><span class="score-val" id="mkt-val">5</span></div></div>
+    </div>
+    <div class="total-box"><span>Total score</span><span class="big" id="total-score">35 / 70</span></div>
+    <div style="margin-top:12px;">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:7px;">Decision</p>
+      <div class="dec-row">
+        <button class="dec-btn" id="dec-keep" onclick="setDec('keep')">Keep</button>
+        <button class="dec-btn" id="dec-maybe" onclick="setDec('maybe')">Maybe</button>
+        <button class="dec-btn" id="dec-reject" onclick="setDec('reject')">Reject</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="stage-header"><div class="stage-num">2</div><div class="stage-title">Complaint validation</div></div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Collect 20 real complaints from Reddit, Quora, G2, Trustpilot, Facebook Groups.</p>
+    <div class="complaints-list" id="complaints-list">
+      <div class="complaint-item"><span class="complaint-num">#1</span><input type="text" placeholder="Paste real complaint here..." /></div>
+      <div class="complaint-item"><span class="complaint-num">#2</span><input type="text" placeholder="Paste real complaint here..." /></div>
+      <div class="complaint-item"><span class="complaint-num">#3</span><input type="text" placeholder="Paste real complaint here..." /></div>
+    </div>
+    <button class="add-btn" onclick="addComplaint()">+ Add complaint</button>
+  </div>
+
+  <div class="stage">
+    <div class="stage-header"><div class="stage-num">3</div><div class="stage-title">Competition analysis</div></div>
+    <div class="competitor-block">
+      <p class="ctitle">Competitor 1</p>
+      <div class="field"><label>Name & price</label><input type="text" placeholder="e.g. Content Snare — $49/mo" /></div>
+      <div class="field"><label>Pros</label><input type="text" placeholder="What they do well..." /></div>
+      <div class="field"><label>Cons</label><input type="text" placeholder="What users hate..." /></div>
+    </div>
+    <div class="competitor-block">
+      <p class="ctitle">Competitor 2</p>
+      <div class="field"><label>Name & price</label><input type="text" placeholder="Name — price" /></div>
+      <div class="field"><label>Pros</label><input type="text" placeholder="What they do well..." /></div>
+      <div class="field"><label>Cons</label><input type="text" placeholder="What users hate..." /></div>
+    </div>
+    <div class="competitor-block">
+      <p class="ctitle">Competitor 3</p>
+      <div class="field"><label>Name & price</label><input type="text" placeholder="Name — price" /></div>
+      <div class="field"><label>Pros</label><input type="text" placeholder="What they do well..." /></div>
+      <div class="field"><label>Cons</label><input type="text" placeholder="What users hate..." /></div>
+    </div>
+    <div class="field"><label>What users hate most (across all)</label><textarea id="comp-hate" placeholder="Common complaints..."></textarea></div>
+  </div>
+
+  <div class="stage">
+    <div class="stage-header"><div class="stage-num">4</div><div class="stage-title">Gap identification</div></div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">Why is the problem still unsolved?</p>
+    <div class="gap-grid">
+      <label class="gap-label"><input type="checkbox" id="gap-expensive" /> Too expensive</label>
+      <label class="gap-label"><input type="checkbox" id="gap-slow" /> Too slow</label>
+      <label class="gap-label"><input type="checkbox" id="gap-manual" /> Too manual</label>
+      <label class="gap-label"><input type="checkbox" id="gap-complex" /> Too complicated</label>
+      <label class="gap-label"><input type="checkbox" id="gap-ux" /> Poor UX</label>
+      <label class="gap-label"><input type="checkbox" id="gap-automation" /> Missing automation</label>
+    </div>
+    <div class="field"><label>Opportunity</label><textarea id="gap-opportunity" placeholder="Describe the gap you can fill..."></textarea></div>
+  </div>
+
+  <div class="stage">
+    <div class="stage-header"><div class="stage-num">5</div><div class="stage-title">Customer discovery</div></div>
+    <div class="field"><label>Interview notes (target: 50 people)</label><textarea id="s5-notes" placeholder="What are they using now? How often? Worst part? Time wasted? Have they paid for a solution?" style="min-height:100px;"></textarea></div>
+  </div>
+
+  <div class="stage">
+    <div class="stage-header"><div class="stage-num">6</div><div class="stage-title">Demand test</div></div>
+    <div class="field"><label>Landing page — problem statement</label><input type="text" id="s6-problem" placeholder="One line: what problem does it solve?" /></div>
+    <div class="field"><label>Solution</label><input type="text" id="s6-solution" placeholder="One line: how does it solve it?" /></div>
+    <div class="field"><label>Email signups so far</label><input type="number" id="s6-signups" placeholder="0" min="0" /></div>
+  </div>
+
+  <div class="stage">
+    <div class="stage-header"><div class="stage-num">7</div><div class="stage-title">MVP definition</div></div>
+    <div class="field"><label>Core feature (one only)</label><input type="text" id="s7-feature" placeholder="The single most important feature..." /></div>
+    <div class="field"><label>Input</label><input type="text" id="s7-input" placeholder="What does the user provide?" /></div>
+    <div class="field"><label>Output</label><input type="text" id="s7-output" placeholder="What does the product give back?" /></div>
+    <div class="field"><label>Success metric</label><input type="text" id="s7-metric" placeholder="How will you know it worked?" /></div>
+  </div>
+
+  <button class="gen-btn" id="gen-btn" onclick="analyze()">
+    ✦ Analyze with Gemini AI
+  </button>
+
+  <div id="ai-result" style="display:none;" class="ai-output">
+    <h3>Gemini analysis</h3>
+    <div id="ai-text" class="content"></div>
+  </div>
+</div>
+
+<script>
+  let _key = '';
+  let dec = '';
+  let cCount = 3;
+
+  function saveKey() {
+    const v = document.getElementById('apiKey').value.trim();
+    if (v) {
+      _key = v;
+      document.getElementById('apiKey').value = '';
+      document.getElementById('key-status').textContent = 'Key saved in memory. Field cleared for security.';
+    }
+  }
+
+  function upd(el, id) {
+    document.getElementById(id).textContent = el.value;
+    calcTotal();
+  }
+
+  function calcTotal() {
+    const ids = ['pain-val','freq-val','pay-val','weak-val','soft-val','solo-val','mkt-val'];
+    const t = ids.reduce((s,id) => s + parseInt(document.getElementById(id).textContent), 0);
+    document.getElementById('total-score').textContent = t + ' / 70';
+  }
+
+  function setDec(d) {
+    dec = d;
+    ['keep','maybe','reject'].forEach(x => {
+      document.getElementById('dec-'+x).className = 'dec-btn' + (x===d ? ' active-'+x : '');
+    });
+  }
+
+  function addComplaint() {
+    cCount++;
+    const div = document.createElement('div');
+    div.className = 'complaint-item';
+    div.innerHTML = '<span class="complaint-num">#'+cCount+'</span><input type="text" placeholder="Paste real complaint here..." />';
+    document.getElementById('complaints-list').appendChild(div);
+  }
+
+  function getData() {
+    const complaints = Array.from(document.querySelectorAll('#complaints-list input')).map(i=>i.value).filter(Boolean);
+    const gaps = ['expensive','slow','manual','complex','ux','automation'].filter(g=>document.getElementById('gap-'+g).checked);
+    return {
+      problem: document.getElementById('s1-problem').value,
+      user: document.getElementById('s1-user').value,
+      score: document.getElementById('total-score').textContent,
+      decision: dec || 'undecided',
+      complaints,
+      compHate: document.getElementById('comp-hate').value,
+      gaps,
+      opportunity: document.getElementById('gap-opportunity').value,
+      notes: document.getElementById('s5-notes').value,
+      lpProblem: document.getElementById('s6-problem').value,
+      lpSolution: document.getElementById('s6-solution').value,
+      signups: document.getElementById('s6-signups').value || '0',
+      feature: document.getElementById('s7-feature').value,
+      input: document.getElementById('s7-input').value,
+      output: document.getElementById('s7-output').value,
+      metric: document.getElementById('s7-metric').value,
+    };
+  }
+
+  async function analyze() {
+    if (!_key) { alert('Enter and save your Gemini API key first.'); return; }
+    const d = getData();
+    if (!d.problem) { alert('Fill in the problem description (Stage 1) at minimum.'); return; }
+
+    const btn = document.getElementById('gen-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner"></div> Analyzing...';
+
+    const prompt = `You are a brutal startup validator. Analyze this validation data and give honest, direct feedback.
+
+Problem: ${d.problem}
+Target User: ${d.user}
+Validation Score: ${d.score}
+Decision: ${d.decision}
+Complaints (${d.complaints.length}): ${d.complaints.slice(0,5).join(' | ') || 'none'}
+Competitor pain points: ${d.compHate || 'not filled'}
+Gaps: ${d.gaps.join(', ') || 'none'}
+Opportunity: ${d.opportunity || 'not filled'}
+Interview notes: ${d.notes || 'none'}
+LP Problem: ${d.lpProblem || 'not done'}
+Email signups: ${d.signups}
+Core MVP feature: ${d.feature || 'not defined'}
+
+Respond in exactly these 4 sections:
+VERDICT: Keep/Maybe/Reject + one sentence why
+STRONGEST SIGNAL: What's most promising
+BIGGEST RISK: The one thing that could kill this
+NEXT ACTION: The single most important thing to do right now
+
+Direct, no fluff. Under 180 words total.`;
+
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${_key}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      });
+      const json = await res.json();
+      if (json.error) throw new Error(json.error.message);
+      const text = json.candidates?.[0]?.content?.parts?.[0]?.text || 'No response received.';
+      document.getElementById('ai-text').innerHTML = text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+      document.getElementById('ai-result').style.display = 'block';
+      document.getElementById('ai-result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch(e) {
+      document.getElementById('ai-text').textContent = 'Error: ' + e.message;
+      document.getElementById('ai-result').style.display = 'block';
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '✦ Analyze with Gemini AI';
+  }
+</script>
+</body>
+</html>
